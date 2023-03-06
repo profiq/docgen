@@ -26,9 +26,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable
             parentId="tools"
-        instance="com.profiq.codexor.SettingsConfigurable"
-        id="com.profiq.codexor.SettingsConfigurable"
-        displayName="">
+            instance="com.profiq.codexor.SettingsConfigurable"
+            id="com.profiq.codexor.SettingsConfigurable"
+            displayName="Codexor">
         </applicationConfigurable>
     </extensions>
 

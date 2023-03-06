@@ -8,6 +8,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -33,6 +35,9 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
+        var language = getLanguage(e);
+        var prompt = getPrompt().replace("{{LANG}}", language);
+
         var editor = e.getData(PlatformDataKeys.EDITOR);
         if (editor != null) {
             var document = editor.getDocument();
@@ -41,7 +46,7 @@ public class GenerateDocumentationAction extends AnAction {
             var body = new JsonObject();
             body.addProperty("model", "code-davinci-edit-001");
             body.addProperty("input", fileContents);
-            body.addProperty("instruction", getPrompt());
+            body.addProperty("instruction", prompt);
             body.addProperty("temperature", 0);
 
             var client = HttpClient.newHttpClient();
@@ -60,7 +65,10 @@ public class GenerateDocumentationAction extends AnAction {
                             var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
                             var app = ApplicationManager.getApplication();
                             app.invokeLater(() -> WriteCommandAction.runWriteCommandAction(
-                                e.getProject(), () -> document.setText(responseParsed.getChoices()[0].getText())));
+                                e.getProject(), () -> {
+                                    var newText = responseParsed.getChoices()[0].getText();
+                                    document.replaceString(0, document.getTextLength(), newText);
+                                }));
                         } else {
                             showError(response.body());
                         }
@@ -99,5 +107,21 @@ public class GenerateDocumentationAction extends AnAction {
 
     private void showError(String text) {
         JOptionPane.showMessageDialog(null, text, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private String getLanguage(AnActionEvent e) {
+        var virtualFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
+
+        if(virtualFile == null) {
+            return "";
+        }
+
+        var fileType = FileTypeManager.getInstance().getFileTypeByFile(virtualFile);
+
+        if(!(fileType instanceof LanguageFileType)) {
+            return "";
+        }
+
+        return fileType.getDisplayName();
     }
 }

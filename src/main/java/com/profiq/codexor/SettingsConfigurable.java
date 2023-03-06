@@ -15,7 +15,7 @@ public class SettingsConfigurable implements Configurable {
     public static String PROMPT_DEFAULT = "Generate high-quality verbose documentation for this code";
 
     private final JTextField apiKeyField;
-    private final JTextField promptField;
+    private final JTextArea promptField;
     private final JPanel ui;
     private String currentApiKey;
     private String currentPrompt;
@@ -31,19 +31,19 @@ public class SettingsConfigurable implements Configurable {
 
         var apiKeyLabel = new JLabel();
         apiKeyLabel.setText("API Key: ");
-        apiKeyLabel.setPreferredSize(new Dimension(60, 30));
+        apiKeyLabel.setPreferredSize(new Dimension(80, 30));
         apiKeyField = new JTextField();
         apiKeyField.setText(currentApiKey);
         apiKeyField.setSize(250, 30);
-        apiKeyField.setPreferredSize(new Dimension(300, 30));
+        apiKeyField.setPreferredSize(new Dimension(400, 30));
 
         var promptLabel = new JLabel();
         promptLabel.setText("Prompt: ");
-        promptLabel.setPreferredSize(new Dimension(60, 30));
-        promptField = new JTextField();
+        promptLabel.setPreferredSize(new Dimension(80, 30));
+        promptField = new JTextArea();
         promptField.setText(currentPrompt);
         promptField.setSize(250, 30);
-        promptField.setPreferredSize(new Dimension(300, 30));
+        promptField.setPreferredSize(new Dimension(400, 120));
 
         ui = new JPanel();
         ui.setLayout(new GridBagLayout());
