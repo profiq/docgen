@@ -11,8 +11,9 @@ repositories {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testImplementation("org.mockito:mockito-core:3.12.4")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -25,6 +26,10 @@ intellij {
 }
 
 tasks {
+    test {
+        useJUnitPlatform()
+    }
+
     // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "11"
@@ -45,4 +50,8 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
+
+   runIde {
+     autoReloadPlugins.set(true)
+   }
 }
