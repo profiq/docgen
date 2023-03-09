@@ -1,7 +1,6 @@
 package com.profiq.codexor;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -9,14 +8,17 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
+import com.intellij.ui.components.JBScrollPane;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -25,8 +27,12 @@ import java.net.http.HttpResponse;
 
 public class GenerateDocumentationAction extends AnAction {
 
+    int textStart;
+    int textEnd;
+    Document document;
+
     @Override
-    public void actionPerformed(@NotNull AnActionEvent event) {
+    public void actionPerformed(@NotNull AnActionEvent e) {
         String apiKey;
 
         try {
@@ -36,13 +42,12 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
-        var language = getLanguage(event);
+        var language = getLanguage(e);
         var prompt = getPrompt().replace("{{LANG}}", language);
 
-        var editor = event.getData(PlatformDataKeys.EDITOR);
+        var editor = e.getData(PlatformDataKeys.EDITOR);
         if (editor != null) {
-            var document = editor.getDocument();
-            int textStart, textEnd;
+            document = editor.getDocument();
 
             String code = editor.getSelectionModel().getSelectedText();
             if (code != null && !code.isEmpty()) {
@@ -54,51 +59,37 @@ public class GenerateDocumentationAction extends AnAction {
                 textEnd = document.getTextLength();
             }
 
-            String body = constructQuery(prompt, code);
+            var messages = new Message[]{new Message("user", prompt + "```" + code + "```")};
+            var requestBody = new Request("gpt-3.5-turbo", messages, 0);
+            var requestJson = new Gson().toJson(requestBody);
 
-            var request = HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/edits"))
+            var client = HttpClient.newHttpClient();
+            var request = HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/chat/completions"))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .POST(HttpRequest.BodyPublishers.ofString(requestJson))
                 .build();
 
-            queryOpenAI(event, document, textStart, textEnd, request);
-        }
-    }
-
-    @NotNull
-    private String constructQuery(String prompt, String code) {
-        var body = new JsonObject();
-        body.addProperty("model", "code-davinci-edit-001");
-        body.addProperty("input", code);
-        body.addProperty("instruction", prompt);
-        body.addProperty("temperature", 0);
-        return body.toString();
-    }
-
-    private void queryOpenAI(@NotNull AnActionEvent e, Document document, int textStart, int textEnd, HttpRequest request) {
-        ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                try {
-                    var client = HttpClient.newHttpClient();
-                    var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                    if (response.statusCode() == 200) {
-                        var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
-                        var app = ApplicationManager.getApplication();
-                        app.invokeLater(() -> WriteCommandAction.runWriteCommandAction(
-                            e.getProject(), () -> {
-                                var newText = responseParsed.getChoices()[0].getText();
-                                document.replaceString(textStart, textEnd, newText);
-                            }));
-                    } else {
-                        showError(response.body());
+            ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    try {
+                        var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                        System.out.println(response.body());
+                        if (response.statusCode() == 200) {
+                            var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
+                            var newMessage = responseParsed.getChoices()[0].getMessage();
+                            var app = ApplicationManager.getApplication();
+                            app.invokeLater(() -> showEditor(e, newMessage.getContent()));
+                        } else {
+                            showError(response.body());
+                        }
+                    } catch (IOException | InterruptedException exception) {
+                        showError("Can't reach OpenAI at the moment");
                     }
-                } catch (IOException | InterruptedException exception) {
-                    showError("Can't reach OpenAI at the moment");
                 }
-            }
-        });
+            });
+        }
     }
 
     private String getApiKey() throws IOException {
@@ -133,16 +124,43 @@ public class GenerateDocumentationAction extends AnAction {
     private String getLanguage(AnActionEvent e) {
         var virtualFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
 
-        if(virtualFile == null) {
+        if (virtualFile == null) {
             return "";
         }
 
         var fileType = FileTypeManager.getInstance().getFileTypeByFile(virtualFile);
 
-        if(!(fileType instanceof LanguageFileType)) {
+        if (!(fileType instanceof LanguageFileType)) {
             return "";
         }
 
         return fileType.getDisplayName();
+    }
+
+    private void showEditor(AnActionEvent e, String text) {
+        var resultWindow = new JFrame();
+        var virtualFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
+        var fileType = FileTypeManager.getInstance().getFileTypeByFile(virtualFile);
+        var newDocument = EditorFactory.getInstance().createDocument(text);
+        var editor = EditorFactory.getInstance().createEditor(newDocument, null, fileType, false);
+        editor.getContentComponent().setMaximumSize(new Dimension(600, 800));
+        var confirmBtn = new JButton("Replace");
+        var mainDocument = this.document;
+
+        confirmBtn.addActionListener(actionEvent -> {
+            var app = ApplicationManager.getApplication();
+            app.invokeLater(() -> WriteCommandAction.runWriteCommandAction(
+                e.getProject(), () -> mainDocument.replaceString(textStart, textEnd, newDocument.getText())));
+            resultWindow.dispose();
+        });
+
+        var scrollPane = new JBScrollPane(editor.getComponent());
+        scrollPane.setPreferredSize(new Dimension(800, 800));
+        resultWindow.setTitle("Generated documentation");
+        resultWindow.getContentPane().add(scrollPane, BorderLayout.NORTH);
+        resultWindow.getContentPane().add(confirmBtn, BorderLayout.SOUTH);
+        resultWindow.pack();
+        resultWindow.setVisible(true);
+        resultWindow.setLocationRelativeTo(null);
     }
 }
