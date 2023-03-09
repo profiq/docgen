@@ -2,9 +2,9 @@ package com.profiq.codexor;
 
 public class Choice {
 
-    private String text;
+    private Message message;
 
-    String getText() {
-        return text;
+    Message getMessage() {
+        return message;
     }
 }
