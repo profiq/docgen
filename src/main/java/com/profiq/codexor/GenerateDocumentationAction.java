@@ -41,11 +41,21 @@ public class GenerateDocumentationAction extends AnAction {
         var editor = e.getData(PlatformDataKeys.EDITOR);
         if (editor != null) {
             var document = editor.getDocument();
-            var fileContents = document.getText();
+            int textStart, textEnd;
+
+            String code = editor.getSelectionModel().getSelectedText();
+            if (code != null && !code.isEmpty()) {
+                textStart = editor.getSelectionModel().getSelectionStart();
+                textEnd = editor.getSelectionModel().getSelectionEnd();
+            } else {
+                code = document.getText();
+                textStart = 0;
+                textEnd = document.getTextLength();
+            }
 
             var body = new JsonObject();
             body.addProperty("model", "code-davinci-edit-001");
-            body.addProperty("input", fileContents);
+            body.addProperty("input", code);
             body.addProperty("instruction", prompt);
             body.addProperty("temperature", 0);
 
@@ -67,7 +77,7 @@ public class GenerateDocumentationAction extends AnAction {
                             app.invokeLater(() -> WriteCommandAction.runWriteCommandAction(
                                 e.getProject(), () -> {
                                     var newText = responseParsed.getChoices()[0].getText();
-                                    document.replaceString(0, document.getTextLength(), newText);
+                                    document.replaceString(textStart, textEnd, newText);
                                 }));
                         } else {
                             showError(response.body());
