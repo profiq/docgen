@@ -75,12 +75,11 @@ public class GenerateDocumentationAction extends AnAction {
                 public void run(@NotNull ProgressIndicator indicator) {
                     try {
                         var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                        System.out.println(response.body());
                         if (response.statusCode() == 200) {
                             var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
                             var newMessage = responseParsed.getChoices()[0].getMessage();
                             var app = ApplicationManager.getApplication();
-                            app.invokeLater(() -> showEditor(e, newMessage.getContent()));
+                            app.invokeLater(() -> showEditor(e, cleanAnswer(newMessage.getContent())));
                         } else {
                             showError(response.body());
                         }
@@ -162,5 +161,13 @@ public class GenerateDocumentationAction extends AnAction {
         resultWindow.pack();
         resultWindow.setVisible(true);
         resultWindow.setLocationRelativeTo(null);
+    }
+
+    private String cleanAnswer(String answer) {
+        if(answer.contains("```")) {
+            return answer.split("```")[1];
+        } else {
+            return answer;
+        }
     }
 }
