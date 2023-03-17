@@ -8,6 +8,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -25,7 +26,7 @@ import java.net.http.HttpResponse;
 public class GenerateDocumentationAction extends AnAction {
 
     @Override
-    public void actionPerformed(@NotNull AnActionEvent e) {
+    public void actionPerformed(@NotNull AnActionEvent event) {
         String apiKey;
 
         try {
@@ -35,10 +36,10 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
-        var language = getLanguage(e);
+        var language = getLanguage(event);
         var prompt = getPrompt().replace("{{LANG}}", language);
 
-        var editor = e.getData(PlatformDataKeys.EDITOR);
+        var editor = event.getData(PlatformDataKeys.EDITOR);
         if (editor != null) {
             var document = editor.getDocument();
             int textStart, textEnd;
@@ -53,41 +54,51 @@ public class GenerateDocumentationAction extends AnAction {
                 textEnd = document.getTextLength();
             }
 
-            var body = new JsonObject();
-            body.addProperty("model", "code-davinci-edit-001");
-            body.addProperty("input", code);
-            body.addProperty("instruction", prompt);
-            body.addProperty("temperature", 0);
+            String body = constructQuery(prompt, code);
 
-            var client = HttpClient.newHttpClient();
             var request = HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/edits"))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+                .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
-            ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    try {
-                        var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                        if (response.statusCode() == 200) {
-                            var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
-                            var app = ApplicationManager.getApplication();
-                            app.invokeLater(() -> WriteCommandAction.runWriteCommandAction(
-                                e.getProject(), () -> {
-                                    var newText = responseParsed.getChoices()[0].getText();
-                                    document.replaceString(textStart, textEnd, newText);
-                                }));
-                        } else {
-                            showError(response.body());
-                        }
-                    } catch (IOException | InterruptedException exception) {
-                        showError("Can't reach OpenAI at the moment");
-                    }
-                }
-            });
+            queryOpenAI(event, document, textStart, textEnd, request);
         }
+    }
+
+    @NotNull
+    private String constructQuery(String prompt, String code) {
+        var body = new JsonObject();
+        body.addProperty("model", "code-davinci-edit-001");
+        body.addProperty("input", code);
+        body.addProperty("instruction", prompt);
+        body.addProperty("temperature", 0);
+        return body.toString();
+    }
+
+    private void queryOpenAI(@NotNull AnActionEvent e, Document document, int textStart, int textEnd, HttpRequest request) {
+        ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    var client = HttpClient.newHttpClient();
+                    var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 200) {
+                        var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
+                        var app = ApplicationManager.getApplication();
+                        app.invokeLater(() -> WriteCommandAction.runWriteCommandAction(
+                            e.getProject(), () -> {
+                                var newText = responseParsed.getChoices()[0].getText();
+                                document.replaceString(textStart, textEnd, newText);
+                            }));
+                    } else {
+                        showError(response.body());
+                    }
+                } catch (IOException | InterruptedException exception) {
+                    showError("Can't reach OpenAI at the moment");
+                }
+            }
+        });
     }
 
     private String getApiKey() throws IOException {

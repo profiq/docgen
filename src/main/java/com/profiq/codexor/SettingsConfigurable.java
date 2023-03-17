@@ -3,6 +3,8 @@ package com.profiq.codexor;
 
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.options.Configurable;
+import com.intellij.ui.components.JBTextArea;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,21 +31,27 @@ public class SettingsConfigurable implements Configurable {
             PropertiesComponent.getInstance().setValue(PROMPT_SETTINGS_KEY, currentPrompt);
         }
 
+        Dimension labelDimension = new Dimension(60, 30);
+
         var apiKeyLabel = new JLabel();
         apiKeyLabel.setText("API Key: ");
-        apiKeyLabel.setPreferredSize(new Dimension(80, 30));
-        apiKeyField = new JTextField();
+        apiKeyLabel.setPreferredSize(labelDimension);
+        apiKeyField = new JBTextField();
         apiKeyField.setText(currentApiKey);
         apiKeyField.setSize(250, 30);
-        apiKeyField.setPreferredSize(new Dimension(400, 30));
+        apiKeyField.setPreferredSize(new Dimension(600, 30));
+        apiKeyField.setToolTipText("You can get your API key from https://openai.com/");
+
 
         var promptLabel = new JLabel();
         promptLabel.setText("Prompt: ");
-        promptLabel.setPreferredSize(new Dimension(80, 30));
-        promptField = new JTextArea();
+        promptLabel.setPreferredSize(labelDimension);
+        promptField = new JBTextArea();
         promptField.setText(currentPrompt);
         promptField.setSize(250, 30);
-        promptField.setPreferredSize(new Dimension(400, 120));
+        promptField.setPreferredSize(new Dimension(600, 120));
+        promptField.setLineWrap(false);
+        promptField.setWrapStyleWord(true);
 
         ui = new JPanel();
         ui.setLayout(new GridBagLayout());
