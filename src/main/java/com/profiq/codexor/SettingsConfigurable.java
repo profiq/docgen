@@ -14,7 +14,7 @@ import java.awt.*;
 public class SettingsConfigurable implements Configurable {
     public static String API_KEY_SETTING_KEY = "codexor.apiKey";
     public static String PROMPT_SETTINGS_KEY = "codexor.prompt";
-    public static String PROMPT_DEFAULT = "Generate high-quality verbose documentation for this code";
+    public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python function: ";
 
     private final JTextField apiKeyField;
     private final JTextArea promptField;
