@@ -1,4 +1,4 @@
-package com.profiq.codexor;
+package com.profiq.docgen;
 
 import com.google.gson.Gson;
 import com.intellij.ide.util.PropertiesComponent;
@@ -144,7 +144,7 @@ public class GenerateDocumentationAction extends AnAction {
 
         var newDocument = EditorFactory.getInstance().createDocument(docstring);
         var editor = EditorFactory.getInstance().createEditor(newDocument, null, fileType, false);
-        editor.getContentComponent().setMaximumSize(new Dimension(600, 800));
+        editor.getContentComponent().setPreferredSize(new Dimension(1000, 800));
         var confirmBtn = new JButton("Insert");
 
 
@@ -164,7 +164,7 @@ public class GenerateDocumentationAction extends AnAction {
         });
 
         var scrollPane = new JBScrollPane(editor.getComponent());
-        scrollPane.setPreferredSize(new Dimension(800, 800));
+        scrollPane.setPreferredSize(new Dimension(1000, 800));
         resultWindow.setTitle("Generated documentation");
         resultWindow.getContentPane().add(scrollPane, BorderLayout.NORTH);
         resultWindow.getContentPane().add(confirmBtn, BorderLayout.SOUTH);

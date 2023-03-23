@@ -1,4 +1,4 @@
-package com.profiq.codexor;
+package com.profiq.docgen;
 
 
 import com.intellij.ide.util.PropertiesComponent;
@@ -12,8 +12,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class SettingsConfigurable implements Configurable {
-    public static String API_KEY_SETTING_KEY = "codexor.apiKey";
-    public static String PROMPT_SETTINGS_KEY = "codexor.prompt";
+    public static String API_KEY_SETTING_KEY = "docgen.apiKey";
+    public static String PROMPT_SETTINGS_KEY = "docgen.prompt";
     public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python function: ";
 
     private final JTextField apiKeyField;
@@ -87,7 +87,7 @@ public class SettingsConfigurable implements Configurable {
 
     @Override
     public String getDisplayName() {
-        return "Codexor";
+        return "Docgen";
     }
 
     @Override

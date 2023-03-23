@@ -1,4 +1,4 @@
-package com.profiq.codexor;
+package com.profiq.docgen;
 
 public class Message {
 

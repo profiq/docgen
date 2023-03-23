@@ -1,4 +1,4 @@
-Codexor
+Docgen
 ==========================
 
 This IntelliJ plugin allows you to generate code documentation using OpenAI's Codex.
@@ -16,15 +16,15 @@ Installation
 1.  Open IntelliJ IDEA
 2.  Go to `Preferences`
 3.  Select `Plugins`
-4.  Click on `Marketplace` and search for `Codexor`
+4.  Click on `Marketplace` and search for `Docgen`
 5.  Install the plugin and restart IntelliJ IDEA
 
 Configuration
 -------------
 
-1.  To set your OpenAI API key, go to `Preferences > Tools  > Codexor`
+1.  To set your OpenAI API key, go to `Preferences > Tools  > Docgen`
 2.  Enter your API key in the provided input field and click 'Apply'
-3.  Set your keyboard shortcut: go to `Preferences > Keymap` and look for `Plugins > Codexor > Codexor - Generate Documentation`
+3.  Set your keyboard shortcut: go to `Preferences > Keymap` and look for `Plugins > Docgen > Docgen - Generate Documentation`
 
 Usage
 -----
@@ -45,7 +45,7 @@ Generate documentation for {{LANG}} code
 
 where `{{LANG}}` will be replaced with the detected programming language.
 
-To use a custom prompt, go to `Preferences > Tools > Codexor` and enter your prompt in the provided input field.
+To use a custom prompt, go to `Preferences > Tools > Docgen` and enter your prompt in the provided input field.
 
 Contributing
 ------------
