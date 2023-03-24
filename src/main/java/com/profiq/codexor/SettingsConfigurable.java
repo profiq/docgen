@@ -14,7 +14,7 @@ import java.awt.*;
 public class SettingsConfigurable implements Configurable {
     public static String API_KEY_SETTING_KEY = "codexor.apiKey";
     public static String PROMPT_SETTINGS_KEY = "codexor.prompt";
-    public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python function: ";
+    public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python function including function signature: ";
 
     private final JTextField apiKeyField;
     private final JTextArea promptField;
@@ -50,7 +50,7 @@ public class SettingsConfigurable implements Configurable {
         promptField.setText(currentPrompt);
         promptField.setSize(250, 30);
         promptField.setPreferredSize(new Dimension(600, 120));
-        promptField.setLineWrap(false);
+        promptField.setLineWrap(true);
         promptField.setWrapStyleWord(true);
 
         ui = new JPanel();

@@ -1,38 +1,39 @@
-Codexor
+Docgen
 ==========================
 
-This IntelliJ plugin allows you to generate code documentation using OpenAI's Codex.
+This IntelliJ plugin allows you to generate Python function documentation using OpenAI's ChatGPT.
 
 Features
 --------
 
-*   Generate code documentation using OpenAI's `code-davinci-edit-001` model
-*   Supports multiple programming languages
+*   Generate code documentation using OpenAI's `gpt-3.5-turbo` model
 *   Option to use a custom prompt
 
 Installation
 ------------
 
 1.  Open IntelliJ IDEA
-2.  Go to `Preferences`
-3.  Select `Plugins`
-4.  Click on `Marketplace` and search for `Codexor`
-5.  Install the plugin and restart IntelliJ IDEA
+2.  Make sure that the [Python plugin](https://plugins.jetbrains.com/plugin/7322-python-community-edition) is installed
+3.  Go to `Preferences`
+4.  Select `Plugins`
+5.  Click on `Marketplace` and search for `Docgen`
+6.  Install the plugin and restart IntelliJ IDEA
 
 Configuration
 -------------
 
-1.  To set your OpenAI API key, go to `Preferences > Tools  > Codexor`
+1.  To set your OpenAI API key, go to `Preferences > Tools  > Docgen`
 2.  Enter your API key in the provided input field and click 'Apply'
-3.  Set your keyboard shortcut: go to `Preferences > Keymap` and look for `Plugins > Codexor > Codexor - Generate Documentation`
+3.  Set your keyboard shortcut: go to `Preferences > Keymap` and look for `Plugins > Docgen > Generate docstring`
 
 Usage
 -----
 
-1.  Select the code you want to generate documentation for
-2.  Press the configured keyboard shortcut
+1.  Right-click on the function you want to generate documentation for
+2.  Choose `Generate docstring` from the context menu
 3.  Wait for the OpenAI model to generate the documentation
-4.  The generated documentation will be added to the selected code
+4.  The generated documentation will be displayed in a popup window
+5.  Click `Insert` to add the documentation to your Python function
 
 Prompt
 ------
@@ -40,12 +41,10 @@ Prompt
 The default prompt is:
 
 ```css
-Generate documentation for {{LANG}} code
+Generate high-quality docstring for the following Python function including function signature:
 ```
 
-where `{{LANG}}` will be replaced with the detected programming language.
-
-To use a custom prompt, go to `Preferences > Tools > Codexor` and enter your prompt in the provided input field.
+To use a custom prompt, go to `Preferences > Tools > Docgen` and enter your prompt in the provided input field.
 
 Contributing
 ------------
