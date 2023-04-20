@@ -1,7 +1,8 @@
 Docgen
 ==========================
 
-This IntelliJ plugin allows you to generate Python function documentation using OpenAI's ChatGPT.
+This IntelliJ plugin allows you to generate Python function documentation using OpenAI's ChatGPT.  
+You can download the plugin from the JetBrains MarketPlace - [Docgen](https://plugins.jetbrains.com/plugin/21294-docgen)
 
 Features
 --------
