@@ -7,7 +7,7 @@ You can download the plugin from the JetBrains MarketPlace - [Docgen](https://pl
 Features
 --------
 
-*   Generate code documentation using OpenAI's `gpt-3.5-turbo` model
+*   Generate code documentation using OpenAI's models
 *   Option to use a custom prompt
 
 Installation
@@ -35,6 +35,12 @@ Usage
 3.  Wait for the OpenAI model to generate the documentation
 4.  The generated documentation will be displayed in a popup window
 5.  Click `Insert` to add the documentation to your Python function
+
+Model
+-----
+
+The default model is `gpt-3.5-turbo`. To use another model go to `Preferences > Tools > Docgen` and
+enter the model name in the provided input field.
 
 Prompt
 ------

@@ -46,6 +46,7 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
+        var model = getModel();
         var prompt = getPrompt();
         PsiElement element = e.getData(CommonDataKeys.PSI_ELEMENT);
 
@@ -58,7 +59,7 @@ public class GenerateDocumentationAction extends AnAction {
 
         if (code != null) {
             var client = HttpClient.newHttpClient();
-            HttpRequest request = buildRequest(apiKey, prompt, code);
+            HttpRequest request = buildRequest(apiKey, model, prompt, code);
             ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
@@ -81,9 +82,9 @@ public class GenerateDocumentationAction extends AnAction {
         }
     }
 
-    private static HttpRequest buildRequest(String apiKey, String prompt, String code) {
+    private static HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
         var messages = new Message[]{new Message("user", prompt + "```" + code + "```")};
-        var requestBody = new Request("gpt-3.5-turbo", messages, 0);
+        var requestBody = new Request(model, messages, 0);
         var requestJson = new Gson().toJson(requestBody);
 
         return HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/chat/completions"))
@@ -116,6 +117,16 @@ public class GenerateDocumentationAction extends AnAction {
         }
 
         return apiKeyInput;
+    }
+
+    private String getModel() {
+        String model = PropertiesComponent.getInstance().getValue(SettingsConfigurable.MODEL_SETTINGS_KEY);
+
+        if ( model == null) {
+            model = SettingsConfigurable.MODEL_DEFAULT;
+        }
+
+        return model;
     }
 
     private String getPrompt() {
