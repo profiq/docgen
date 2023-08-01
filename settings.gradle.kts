@@ -1,1 +1,1 @@
-rootProject.name = "codexor"
+rootProject.name = "docgen"
