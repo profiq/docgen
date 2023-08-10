@@ -8,7 +8,10 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.editor.*;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.LogicalPosition;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -24,6 +27,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,8 +67,9 @@ public class GenerateDocumentationAction extends AnAction {
             ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
-                    try {
-                        var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                    var responseFuture = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+
+                    responseFuture.thenAccept(response -> {
                         if (response.statusCode() == 200) {
                             var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
                             var responseText = responseParsed.getChoices()[0].getMessage().getContent();
@@ -72,11 +77,33 @@ public class GenerateDocumentationAction extends AnAction {
                             var app = ApplicationManager.getApplication();
                             app.invokeLater(() -> showEditor(e, docstring));
                         } else {
+                            indicator.cancel();
                             showError(response.body());
                         }
-                    } catch (IOException | InterruptedException exception) {
-                        showError("Can't reach OpenAI at the moment");
+                    });
+
+                    responseFuture.exceptionally(e -> {
+                        if (e instanceof IOException || e instanceof InterruptedException) {
+                            showError("Can't reach OpenAI at the moment");
+                        }
+                        return null;
+                    });
+
+
+                    while (!responseFuture.isDone()) {
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException e) {
+                            System.out.println("Interrupted!");
+                        }
+
+                        if(indicator.isCanceled()) {
+                            responseFuture.cancel(true);
+                            indicator.checkCanceled();
+                        }
                     }
+
+                    responseFuture.join();
                 }
             });
         }
@@ -122,7 +149,7 @@ public class GenerateDocumentationAction extends AnAction {
     private String getModel() {
         String model = PropertiesComponent.getInstance().getValue(SettingsConfigurable.MODEL_SETTINGS_KEY);
 
-        if ( model == null) {
+        if (model == null) {
             model = SettingsConfigurable.MODEL_DEFAULT;
         }
 
