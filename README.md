@@ -53,6 +53,22 @@ Generate high-quality docstring for the following Python function including func
 
 To use a custom prompt, go to `Preferences > Tools > Docgen` and enter your prompt in the provided input field.
 
+Development environment
+-----------------------
+
+We recommend using IntelliJ IDEA for development. After installing IDEA you can simply open the project folder.
+
+You also need JDK 17. If IDEA can't find this JDK version on your machine it should
+suggest downloading it for you after opening any `.java` file. You can also go to `File > New > Project > JDK > Add SDK` 
+and download the correct JDK version manually.
+
+To test the plugin you go to `Run > Run...` and select the `Run Plugin` configuration. This will start a new isolated IDEA
+instance with Docgen already installed.
+
+To create a ZIP file for distributing the plugin first open the Gradle tool window by clicking `View > Tool Windows > Gradle`.
+Then select `Tasks > intelij > buildPlugin`. If the Gradle tool window is empty click the "reload" button. It will force
+IDEA to download all missing tools.
+
 Contributing
 ------------
 
