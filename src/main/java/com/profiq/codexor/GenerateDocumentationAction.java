@@ -27,11 +27,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GenerateDocumentationAction extends AnAction {
+
+    String correctIndentation;
 
     @Override
     public void update(@NotNull AnActionEvent event) {
@@ -62,6 +63,7 @@ public class GenerateDocumentationAction extends AnAction {
         String code = element.getText();
 
         if (code != null) {
+            correctIndentation = determineCorrectIndentation(code);
             var client = HttpClient.newHttpClient();
             HttpRequest request = buildRequest(apiKey, model, prompt, code);
             ProgressManager.getInstance().run(new Task.Modal(e.getProject(), "Waiting for OpenAI", true) {
@@ -97,7 +99,7 @@ public class GenerateDocumentationAction extends AnAction {
                             System.out.println("Interrupted!");
                         }
 
-                        if(indicator.isCanceled()) {
+                        if (indicator.isCanceled()) {
                             responseFuture.cancel(true);
                             indicator.checkCanceled();
                         }
@@ -180,7 +182,7 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
-        var newDocument = EditorFactory.getInstance().createDocument(docstring);
+        var newDocument = EditorFactory.getInstance().createDocument(applyIndentation(docstring, ""));
         var editor = EditorFactory.getInstance().createEditor(newDocument, null, fileType, false);
         editor.getContentComponent().setPreferredSize(new Dimension(1000, 800));
         var confirmBtn = new JButton("Insert");
@@ -192,7 +194,7 @@ public class GenerateDocumentationAction extends AnAction {
         int lineEndOffset = mainDocument.getLineEndOffset(caretPosition.line);
         int nextLineStartOffset = mainDocument.getLineStartOffset(caretPosition.line + 1);
         int offset = Math.min(lineEndOffset + 1, nextLineStartOffset);
-        String formattedDocstring = docstring + "\n";
+        String formattedDocstring = applyIndentation(docstring, correctIndentation);
 
         confirmBtn.addActionListener(actionEvent -> {
             var app = ApplicationManager.getApplication();
@@ -209,5 +211,40 @@ public class GenerateDocumentationAction extends AnAction {
         resultWindow.pack();
         resultWindow.setVisible(true);
         resultWindow.setLocationRelativeTo(null);
+    }
+
+    private String applyIndentation(String docstring, String indentation) {
+        Pattern pattern = Pattern.compile("^(\\s+)");
+        Matcher matcher = pattern.matcher(docstring);
+
+        if (matcher.find()) {
+            String leadingWhitespace = matcher.group(1);
+            int minIndent = leadingWhitespace.length();
+            String[] lines = docstring.split("\n");
+            StringBuilder unindented = new StringBuilder();
+
+            for (String line : lines) {
+                unindented.append(indentation);
+                if (line.length() >= minIndent) {
+                    unindented.append(line.substring(minIndent));
+                }
+                unindented.append("\n");
+            }
+
+            return unindented.toString();
+        }
+
+        return docstring;
+    }
+
+    private String determineCorrectIndentation(String code) {
+        Pattern pattern = Pattern.compile("\n(\\s+)");
+        Matcher matcher = pattern.matcher(code);
+
+        if(matcher.find()) {
+            return matcher.group(1);
+        }
+
+        return "";
     }
 }
