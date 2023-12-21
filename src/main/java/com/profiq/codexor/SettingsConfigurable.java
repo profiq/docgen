@@ -16,7 +16,7 @@ public class SettingsConfigurable implements Configurable {
     public static String MODEL_SETTINGS_KEY = "codexor.model";
     public static String MODEL_DEFAULT = "gpt-3.5-turbo";
     public static String PROMPT_SETTINGS_KEY = "codexor.prompt";
-    public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python function including function signature: ";
+    public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python class or function.  Use the reStructuredText docstring format. Only return the docstring for the top-level element:";
 
     private final JTextField apiKeyField;
     private final JTextField modelField;

@@ -56,7 +56,7 @@ public class GenerateDocumentationAction extends AnAction {
         PsiElement element = e.getData(CommonDataKeys.PSI_ELEMENT);
 
         if (element == null) {
-            showError("Please select a Python function");
+            showError("Please select a Python function, method or class");
             return;
         }
 
@@ -112,6 +112,8 @@ public class GenerateDocumentationAction extends AnAction {
     }
 
     private static HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
+        System.out.println(prompt);
+
         var messages = new Message[]{new Message("user", prompt + "```" + code + "```")};
         var requestBody = new Request(model, messages, 0);
         var requestJson = new Gson().toJson(requestBody);
@@ -127,7 +129,10 @@ public class GenerateDocumentationAction extends AnAction {
         Pattern pattern = Pattern.compile(":\n(\\s*\"\"\".*\"\"\")", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(responseText);
         if (matcher.find()) {
-            return matcher.group(1);
+            String docstring = matcher.group(1);
+            String[] docstringSplit = docstring.split("\"\"\"");
+            docstring = docstringSplit[0] + "\"\"\"" + docstringSplit[1] + "\"\"\"";
+            return docstring;
         } else {
             return "";
         }
@@ -187,7 +192,6 @@ public class GenerateDocumentationAction extends AnAction {
         editor.getContentComponent().setPreferredSize(new Dimension(1000, 800));
         var confirmBtn = new JButton("Insert");
 
-
         Editor mainEditor = e.getData(CommonDataKeys.EDITOR);
         Document mainDocument = mainEditor.getDocument();
         LogicalPosition caretPosition = mainEditor.getCaretModel().getLogicalPosition();
@@ -225,6 +229,7 @@ public class GenerateDocumentationAction extends AnAction {
 
             for (String line : lines) {
                 unindented.append(indentation);
+
                 if (line.length() >= minIndent) {
                     unindented.append(line.substring(minIndent));
                 }
@@ -242,7 +247,7 @@ public class GenerateDocumentationAction extends AnAction {
         Matcher matcher = pattern.matcher(code);
 
         if(matcher.find()) {
-            return matcher.group(1);
+            return matcher.group(1).replace("\n", "");
         }
 
         return "";
