@@ -112,8 +112,6 @@ public class GenerateDocumentationAction extends AnAction {
     }
 
     private static HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
-        System.out.println(prompt);
-
         var messages = new Message[]{new Message("user", prompt + "```" + code + "```")};
         var requestBody = new Request(model, messages, 0);
         var requestJson = new Gson().toJson(requestBody);
