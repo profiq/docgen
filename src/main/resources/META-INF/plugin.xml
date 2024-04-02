@@ -23,6 +23,12 @@
         <![CDATA[
             <ul>
                 <li>
+                    <b>0.1.6</b>
+                    <ul>
+                        <li>Make compatible with 2024.1
+                    </ul>
+                </li>
+                <li>
                     <b>0.1.5</b>
                     <ul>
                         <li>Updated vendor ID</li>
@@ -62,4 +68,8 @@
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
     </actions>
+
+    <idea-version>
+        <since-build>221</since-build>
+    </idea-version>
 </idea-plugin>
