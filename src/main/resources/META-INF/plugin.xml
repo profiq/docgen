@@ -15,7 +15,7 @@
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description>
         <![CDATA[
-            This plugin uses Open AI's GPT 3.5 to generate documentation for Python methods and classes.
+            This plugin uses Open AI's GPT models to generate documentation for Python methods and classes.
         ]]>
     </description>
 

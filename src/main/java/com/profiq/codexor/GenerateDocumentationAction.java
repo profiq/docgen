@@ -111,19 +111,36 @@ public class GenerateDocumentationAction extends AnAction {
         }
     }
 
-    private static HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
-        var messages = new Message[]{new Message("user", prompt + "```" + code + "```")};
+    private HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
+        var endpointURL = getEndpointURL();
+        var isAzure = endpointURL.contains("azure");
+
+        if (isAzure) {
+            endpointURL = endpointURL + "openai/deployments/" + model + "/chat/completions?api-version=2024-02-01";
+        }
+
+        var messages = new Message[]{new Message(prompt + "```" + code + "```")};
         var requestBody = new Request(model, messages, 0);
         var requestJson = new Gson().toJson(requestBody);
 
-        return HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/chat/completions"))
-            .header("Authorization", "Bearer " + apiKey)
-            .header("Content-Type", "application/json")
+        var requestBuilder = HttpRequest.newBuilder(URI.create(endpointURL));
+
+        if (isAzure) {
+            requestBuilder.header("api-key", apiKey);
+        } else {
+            requestBuilder.header("Authorization", "Bearer " + apiKey);
+        }
+
+        return requestBuilder.header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(requestJson))
             .build();
     }
 
     private String parseDocstring(String responseText) {
+        if (responseText.trim().startsWith("\"\"\"") && responseText.trim().endsWith("\"\"\"")) {
+            return responseText;
+        }
+
         Pattern pattern = Pattern.compile(":\n(\\s*\"\"\".*\"\"\")", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(responseText);
         if (matcher.find()) {
@@ -133,6 +150,16 @@ public class GenerateDocumentationAction extends AnAction {
             return docstring;
         } else {
             return "";
+        }
+    }
+
+    private String getEndpointURL() {
+        String endpointInput = PropertiesComponent.getInstance().getValue(SettingsConfigurable.ENDPOINT_SETTINGS_KEY);
+
+        if (endpointInput == null || endpointInput.isEmpty()) {
+            return "https://api.openai.com/v1/chat/completions";
+        } else {
+            return endpointInput;
         }
     }
 
