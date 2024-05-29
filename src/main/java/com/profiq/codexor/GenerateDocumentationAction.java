@@ -76,6 +76,7 @@ public class GenerateDocumentationAction extends AnAction {
                             var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
                             var responseText = responseParsed.getChoices()[0].getMessage().getContent();
                             String docstring = parseDocstring(responseText);
+
                             var app = ApplicationManager.getApplication();
                             app.invokeLater(() -> showEditor(e, docstring));
                         } else {
@@ -137,20 +138,30 @@ public class GenerateDocumentationAction extends AnAction {
     }
 
     private String parseDocstring(String responseText) {
-        if (responseText.trim().startsWith("\"\"\"") && responseText.trim().endsWith("\"\"\"")) {
-            return responseText;
-        }
-
-        Pattern pattern = Pattern.compile(":\n(\\s*\"\"\".*\"\"\")", Pattern.DOTALL);
+        Pattern pattern = Pattern.compile("(\\s*\"\"\".*\"\"\")", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(responseText);
-        if (matcher.find()) {
-            String docstring = matcher.group(1);
-            String[] docstringSplit = docstring.split("\"\"\"");
-            docstring = docstringSplit[0] + "\"\"\"" + docstringSplit[1] + "\"\"\"";
-            return docstring;
-        } else {
+
+        if (!matcher.find()) {
             return "";
         }
+
+        Pattern indentPattern = Pattern.compile("^(\\s*)");
+        Matcher indentMatcher = indentPattern.matcher(responseText);
+        String baseIndent = "";
+
+        if (indentMatcher.find()) {
+            baseIndent = indentMatcher.group(1);
+        }
+
+        String docstring = matcher.group(1);
+        String[] docsctringLines = docstring.split("\n");
+        StringBuilder docstringBuilder = new StringBuilder();
+
+        for (String line : docsctringLines) {
+            docstringBuilder.append(line.substring(baseIndent.length())).append("\n");
+        }
+
+        return docstringBuilder.toString();
     }
 
     private String getEndpointURL() {
@@ -166,7 +177,7 @@ public class GenerateDocumentationAction extends AnAction {
     private String getApiKey() throws IOException {
         String apiKeyInput = PropertiesComponent.getInstance().getValue(SettingsConfigurable.API_KEY_SETTING_KEY);
 
-        if (apiKeyInput == null || apiKeyInput.length() == 0) {
+        if (apiKeyInput == null || apiKeyInput.isEmpty()) {
             apiKeyInput = JOptionPane.showInputDialog("Enter your Open AI API key:");
             PropertiesComponent.getInstance().setValue(SettingsConfigurable.API_KEY_SETTING_KEY, apiKeyInput);
         }
@@ -243,28 +254,16 @@ public class GenerateDocumentationAction extends AnAction {
     }
 
     private String applyIndentation(String docstring, String indentation) {
-        Pattern pattern = Pattern.compile("^(\\s+)");
-        Matcher matcher = pattern.matcher(docstring);
+        String[] lines = docstring.split("\n");
+        StringBuilder unindented = new StringBuilder();
 
-        if (matcher.find()) {
-            String leadingWhitespace = matcher.group(1);
-            int minIndent = leadingWhitespace.length();
-            String[] lines = docstring.split("\n");
-            StringBuilder unindented = new StringBuilder();
-
-            for (String line : lines) {
-                unindented.append(indentation);
-
-                if (line.length() >= minIndent) {
-                    unindented.append(line.substring(minIndent));
-                }
-                unindented.append("\n");
-            }
-
-            return unindented.toString();
+        for (String line : lines) {
+            unindented.append(indentation);
+            unindented.append(line);
+            unindented.append("\n");
         }
 
-        return docstring;
+        return unindented.toString();
     }
 
     private String determineCorrectIndentation(String code) {

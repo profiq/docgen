@@ -15,7 +15,7 @@ public class SettingsConfigurable implements Configurable {
     public static String ENDPOINT_SETTINGS_KEY = "codexor.endpoint";
     public static String API_KEY_SETTING_KEY = "codexor.apiKey";
     public static String MODEL_SETTINGS_KEY = "codexor.model";
-    public static String MODEL_DEFAULT = "gpt-3.5-turbo";
+    public static String MODEL_DEFAULT = "gpt-4o";
     public static String PROMPT_SETTINGS_KEY = "codexor.prompt";
     public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python class or function.  Use the reStructuredText docstring format. Only return the docstring for the top-level element:";
 
