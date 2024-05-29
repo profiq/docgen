@@ -23,6 +23,12 @@
         <![CDATA[
             <ul>
                 <li>
+                    <b>0.1.7</b>
+                    <ul>
+                        <li>Added support for Azure OpenAI
+                    </ul>
+                </li>
+                <li>
                     <b>0.1.6</b>
                     <ul>
                         <li>Make compatible with 2024.1
