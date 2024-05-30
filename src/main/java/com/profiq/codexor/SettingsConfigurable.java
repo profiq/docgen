@@ -5,104 +5,82 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.FormBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class SettingsConfigurable implements Configurable {
+    public static String ENDPOINT_SETTINGS_KEY = "codexor.endpoint";
     public static String API_KEY_SETTING_KEY = "codexor.apiKey";
     public static String MODEL_SETTINGS_KEY = "codexor.model";
-    public static String MODEL_DEFAULT = "gpt-3.5-turbo";
+    public static String MODEL_DEFAULT = "gpt-4o";
     public static String PROMPT_SETTINGS_KEY = "codexor.prompt";
     public static String PROMPT_DEFAULT = "Generate high-quality docstring for the following Python class or function.  Use the reStructuredText docstring format. Only return the docstring for the top-level element:";
 
-    private final JTextField apiKeyField;
-    private final JTextField modelField;
-    private final JTextArea promptField;
+    private final JBTextField endpointField;
+    private final JBTextField apiKeyField;
+    private final JBTextField modelField;
+    private final JBTextArea promptField;
     private final JPanel ui;
+    private String currentEndpoint;
     private String currentApiKey;
     private String currentModel;
     private String currentPrompt;
 
     public SettingsConfigurable() {
+        currentEndpoint = PropertiesComponent.getInstance().getValue(ENDPOINT_SETTINGS_KEY);
         currentApiKey = PropertiesComponent.getInstance().getValue(API_KEY_SETTING_KEY);
         currentModel = PropertiesComponent.getInstance().getValue(MODEL_SETTINGS_KEY);
         currentPrompt = PropertiesComponent.getInstance().getValue(PROMPT_SETTINGS_KEY);
 
-        if(currentModel == null) {
+        if (currentModel == null) {
             currentModel = MODEL_DEFAULT;
             PropertiesComponent.getInstance().setValue(MODEL_SETTINGS_KEY, currentModel);
         }
 
-        if(currentPrompt == null) {
+        var maximumSize = new Dimension(600, 120);
+
+        if (currentPrompt == null) {
             currentPrompt = PROMPT_DEFAULT;
             PropertiesComponent.getInstance().setValue(PROMPT_SETTINGS_KEY, currentPrompt);
         }
 
-        Dimension labelDimension = new Dimension(60, 30);
+        endpointField = new JBTextField();
+        endpointField.setText(currentEndpoint);
 
-        var apiKeyLabel = new JLabel();
-        apiKeyLabel.setText("API Key: ");
-        apiKeyLabel.setPreferredSize(labelDimension);
         apiKeyField = new JBTextField();
         apiKeyField.setText(currentApiKey);
-        apiKeyField.setSize(250, 30);
-        apiKeyField.setPreferredSize(new Dimension(600, 30));
-        apiKeyField.setToolTipText("You can get your API key from https://openai.com/");
 
-        var modelLabel = new JLabel();
-        modelLabel.setText("Model: ");
-        modelLabel.setPreferredSize(labelDimension);
         modelField = new JBTextField();
         modelField.setText(currentModel);
-        modelField.setSize(250, 30);
-        modelField.setPreferredSize(new Dimension(600, 30));
 
-
-        var promptLabel = new JLabel();
-        promptLabel.setText("Prompt: ");
-        promptLabel.setPreferredSize(labelDimension);
         promptField = new JBTextArea();
         promptField.setText(currentPrompt);
-        promptField.setSize(250, 30);
-        promptField.setPreferredSize(new Dimension(600, 120));
         promptField.setLineWrap(true);
         promptField.setWrapStyleWord(true);
+        promptField.setMaximumSize(maximumSize);
+        promptField.setMinimumSize(new Dimension(270, 55));
+        promptField.setRows(5);
 
-        ui = new JPanel();
-        ui.setLayout(new GridBagLayout());
+        var instructions = new JBTextArea();
+        instructions.setText("* Leave empty to use the default OpenAI API.");
+        instructions.setLineWrap(true);
+        instructions.setWrapStyleWord(true);
+        instructions.setBackground(null);
+        instructions.setEditable(false);
+        instructions.setMaximumSize(maximumSize);
+        var font = instructions.getFont();
+        instructions.setFont(new Font(font.getName(), Font.ITALIC, font.getSize() - 2));
 
-        var c = new GridBagConstraints();
-        c.insets = JBUI.insets(5);
-        c.anchor = GridBagConstraints.NORTHWEST;
-
-        c.gridx = 0;
-        c.gridy = 0;
-        ui.add(apiKeyLabel, c);
-
-        c.gridx = 1;
-        ui.add(apiKeyField, c);
-
-        c.gridx = 0;
-        c.gridy = 1;
-        ui.add(modelLabel, c);
-
-        c.gridx = 1;
-        ui.add(modelField, c);
-
-        c.gridx = 0;
-        c.gridy = 2;
-        ui.add(promptLabel, c);
-
-        c.gridx = 1;
-        ui.add(promptField, c);
-
-        c.gridy = 3;
-        var filler = new JLabel();
-        filler.setPreferredSize(new Dimension(0, 200));
-        ui.add(filler, c);
+        ui = FormBuilder.createFormBuilder()
+            .addLabeledComponent("OpenAI/Azure API Key:", apiKeyField)
+            .addLabeledComponent("Model/azure deployment:", modelField)
+            .addLabeledComponent("Azure endpoint*:", endpointField)
+            .addLabeledComponent("Prompt: ", promptField, 50, true)
+            .addComponentFillVertically(instructions, 50)
+            .getPanel();
     }
 
     @Override
@@ -112,14 +90,15 @@ public class SettingsConfigurable implements Configurable {
 
     @Override
     public String getDisplayName() {
-        return "Codexor";
+        return "Docgen";
     }
 
     @Override
     public boolean isModified() {
         return !apiKeyField.getText().equals(currentApiKey)
             || !promptField.getText().equals(currentPrompt)
-            || !modelField.getText().equals(currentModel);
+            || !modelField.getText().equals(currentModel)
+            || !endpointField.getText().equals(currentEndpoint);
     }
 
     @Override
@@ -127,13 +106,18 @@ public class SettingsConfigurable implements Configurable {
         currentApiKey = apiKeyField.getText();
         currentModel = modelField.getText();
         currentPrompt = promptField.getText();
+        currentEndpoint = endpointField.getText();
 
-        if (currentApiKey.length() == 0)
+        if (currentEndpoint.isEmpty())
+            currentEndpoint = null;
+
+        if (currentApiKey.isEmpty())
             currentApiKey = null;
 
-        if (currentModel.length() == 0)
+        if (currentModel.isEmpty())
             currentModel = null;
 
+        PropertiesComponent.getInstance().setValue(ENDPOINT_SETTINGS_KEY, currentEndpoint);
         PropertiesComponent.getInstance().setValue(API_KEY_SETTING_KEY, currentApiKey);
         PropertiesComponent.getInstance().setValue(MODEL_SETTINGS_KEY, currentModel);
         PropertiesComponent.getInstance().setValue(PROMPT_SETTINGS_KEY, currentPrompt);
@@ -144,5 +128,6 @@ public class SettingsConfigurable implements Configurable {
         apiKeyField.setText(currentApiKey);
         modelField.setText(currentModel);
         promptField.setText(currentPrompt);
+        endpointField.setText(currentEndpoint);
     }
 }

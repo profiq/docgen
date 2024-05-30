@@ -75,9 +75,8 @@ public class GenerateDocumentationAction extends AnAction {
                         if (response.statusCode() == 200) {
                             var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
                             var responseText = responseParsed.getChoices()[0].getMessage().getContent();
-                            String docstring = parseDocstring(responseText);
                             var app = ApplicationManager.getApplication();
-                            app.invokeLater(() -> showEditor(e, docstring));
+                            app.invokeLater(() -> showEditor(e, responseText));
                         } else {
                             indicator.cancel();
                             showError(response.body());
@@ -111,35 +110,45 @@ public class GenerateDocumentationAction extends AnAction {
         }
     }
 
-    private static HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
-        var messages = new Message[]{new Message("user", prompt + "```" + code + "```")};
+    private HttpRequest buildRequest(String apiKey, String model, String prompt, String code) {
+        var endpointURL = getEndpointURL();
+        var isAzure = endpointURL.contains("azure");
+
+        if (isAzure) {
+            endpointURL = endpointURL + "openai/deployments/" + model + "/chat/completions?api-version=2024-02-01";
+        }
+
+        var messages = new Message[]{new Message(prompt + "```" + code + "```")};
         var requestBody = new Request(model, messages, 0);
         var requestJson = new Gson().toJson(requestBody);
 
-        return HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/chat/completions"))
-            .header("Authorization", "Bearer " + apiKey)
-            .header("Content-Type", "application/json")
+        var requestBuilder = HttpRequest.newBuilder(URI.create(endpointURL));
+
+        if (isAzure) {
+            requestBuilder.header("api-key", apiKey);
+        } else {
+            requestBuilder.header("Authorization", "Bearer " + apiKey);
+        }
+
+        return requestBuilder.header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(requestJson))
             .build();
     }
 
-    private String parseDocstring(String responseText) {
-        Pattern pattern = Pattern.compile(":\n(\\s*\"\"\".*\"\"\")", Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(responseText);
-        if (matcher.find()) {
-            String docstring = matcher.group(1);
-            String[] docstringSplit = docstring.split("\"\"\"");
-            docstring = docstringSplit[0] + "\"\"\"" + docstringSplit[1] + "\"\"\"";
-            return docstring;
+    private String getEndpointURL() {
+        String endpointInput = PropertiesComponent.getInstance().getValue(SettingsConfigurable.ENDPOINT_SETTINGS_KEY);
+
+        if (endpointInput == null || endpointInput.isEmpty()) {
+            return "https://api.openai.com/v1/chat/completions";
         } else {
-            return "";
+            return endpointInput;
         }
     }
 
     private String getApiKey() throws IOException {
         String apiKeyInput = PropertiesComponent.getInstance().getValue(SettingsConfigurable.API_KEY_SETTING_KEY);
 
-        if (apiKeyInput == null || apiKeyInput.length() == 0) {
+        if (apiKeyInput == null || apiKeyInput.isEmpty()) {
             apiKeyInput = JOptionPane.showInputDialog("Enter your Open AI API key:");
             PropertiesComponent.getInstance().setValue(SettingsConfigurable.API_KEY_SETTING_KEY, apiKeyInput);
         }
@@ -175,7 +184,7 @@ public class GenerateDocumentationAction extends AnAction {
         JOptionPane.showMessageDialog(null, text, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void showEditor(AnActionEvent e, String docstring) {
+    private void showEditor(AnActionEvent e, String responseText) {
         var resultWindow = new JFrame();
         var virtualFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
         var fileType = FileTypeManager.getInstance().getFileTypeByFile(virtualFile);
@@ -185,7 +194,8 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
-        var newDocument = EditorFactory.getInstance().createDocument(applyIndentation(docstring, ""));
+        DocstringFormatter docstringFormatter = new DocstringFormatter(responseText);
+        var newDocument = EditorFactory.getInstance().createDocument(docstringFormatter.docstringWithIndentation(""));
         var editor = EditorFactory.getInstance().createEditor(newDocument, null, fileType, false);
         editor.getContentComponent().setPreferredSize(new Dimension(1000, 800));
         var confirmBtn = new JButton("Insert");
@@ -196,7 +206,7 @@ public class GenerateDocumentationAction extends AnAction {
         int lineEndOffset = mainDocument.getLineEndOffset(caretPosition.line);
         int nextLineStartOffset = mainDocument.getLineStartOffset(caretPosition.line + 1);
         int offset = Math.min(lineEndOffset + 1, nextLineStartOffset);
-        String formattedDocstring = applyIndentation(docstring, correctIndentation);
+        String formattedDocstring = docstringFormatter.docstringWithIndentation(correctIndentation);
 
         confirmBtn.addActionListener(actionEvent -> {
             var app = ApplicationManager.getApplication();
@@ -213,31 +223,6 @@ public class GenerateDocumentationAction extends AnAction {
         resultWindow.pack();
         resultWindow.setVisible(true);
         resultWindow.setLocationRelativeTo(null);
-    }
-
-    private String applyIndentation(String docstring, String indentation) {
-        Pattern pattern = Pattern.compile("^(\\s+)");
-        Matcher matcher = pattern.matcher(docstring);
-
-        if (matcher.find()) {
-            String leadingWhitespace = matcher.group(1);
-            int minIndent = leadingWhitespace.length();
-            String[] lines = docstring.split("\n");
-            StringBuilder unindented = new StringBuilder();
-
-            for (String line : lines) {
-                unindented.append(indentation);
-
-                if (line.length() >= minIndent) {
-                    unindented.append(line.substring(minIndent));
-                }
-                unindented.append("\n");
-            }
-
-            return unindented.toString();
-        }
-
-        return docstring;
     }
 
     private String determineCorrectIndentation(String code) {

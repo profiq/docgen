@@ -7,5 +7,4 @@ public class Response {
     Choice[] getChoices() {
         return choices;
     }
-
 }
