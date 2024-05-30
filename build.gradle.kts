@@ -18,7 +18,8 @@ dependencies {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2024.1")
+    version.set("PY-2024.1")
+    type.set("PY")
     plugins.set(listOf())
 }
 

@@ -75,10 +75,8 @@ public class GenerateDocumentationAction extends AnAction {
                         if (response.statusCode() == 200) {
                             var responseParsed = (new Gson()).fromJson(response.body(), Response.class);
                             var responseText = responseParsed.getChoices()[0].getMessage().getContent();
-                            String docstring = parseDocstring(responseText);
-
                             var app = ApplicationManager.getApplication();
-                            app.invokeLater(() -> showEditor(e, docstring));
+                            app.invokeLater(() -> showEditor(e, responseText));
                         } else {
                             indicator.cancel();
                             showError(response.body());
@@ -137,33 +135,6 @@ public class GenerateDocumentationAction extends AnAction {
             .build();
     }
 
-    private String parseDocstring(String responseText) {
-        Pattern pattern = Pattern.compile("(\\s*\"\"\".*\"\"\")", Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(responseText);
-
-        if (!matcher.find()) {
-            return "";
-        }
-
-        Pattern indentPattern = Pattern.compile("^(\\s*)");
-        Matcher indentMatcher = indentPattern.matcher(responseText);
-        String baseIndent = "";
-
-        if (indentMatcher.find()) {
-            baseIndent = indentMatcher.group(1);
-        }
-
-        String docstring = matcher.group(1);
-        String[] docsctringLines = docstring.split("\n");
-        StringBuilder docstringBuilder = new StringBuilder();
-
-        for (String line : docsctringLines) {
-            docstringBuilder.append(line.substring(baseIndent.length())).append("\n");
-        }
-
-        return docstringBuilder.toString();
-    }
-
     private String getEndpointURL() {
         String endpointInput = PropertiesComponent.getInstance().getValue(SettingsConfigurable.ENDPOINT_SETTINGS_KEY);
 
@@ -213,7 +184,7 @@ public class GenerateDocumentationAction extends AnAction {
         JOptionPane.showMessageDialog(null, text, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void showEditor(AnActionEvent e, String docstring) {
+    private void showEditor(AnActionEvent e, String responseText) {
         var resultWindow = new JFrame();
         var virtualFile = e.getData(PlatformDataKeys.VIRTUAL_FILE);
         var fileType = FileTypeManager.getInstance().getFileTypeByFile(virtualFile);
@@ -223,7 +194,8 @@ public class GenerateDocumentationAction extends AnAction {
             return;
         }
 
-        var newDocument = EditorFactory.getInstance().createDocument(applyIndentation(docstring, ""));
+        DocstringFormatter docstringFormatter = new DocstringFormatter(responseText);
+        var newDocument = EditorFactory.getInstance().createDocument(docstringFormatter.docstringWithIndentation(""));
         var editor = EditorFactory.getInstance().createEditor(newDocument, null, fileType, false);
         editor.getContentComponent().setPreferredSize(new Dimension(1000, 800));
         var confirmBtn = new JButton("Insert");
@@ -234,7 +206,7 @@ public class GenerateDocumentationAction extends AnAction {
         int lineEndOffset = mainDocument.getLineEndOffset(caretPosition.line);
         int nextLineStartOffset = mainDocument.getLineStartOffset(caretPosition.line + 1);
         int offset = Math.min(lineEndOffset + 1, nextLineStartOffset);
-        String formattedDocstring = applyIndentation(docstring, correctIndentation);
+        String formattedDocstring = docstringFormatter.docstringWithIndentation(correctIndentation);
 
         confirmBtn.addActionListener(actionEvent -> {
             var app = ApplicationManager.getApplication();
@@ -251,19 +223,6 @@ public class GenerateDocumentationAction extends AnAction {
         resultWindow.pack();
         resultWindow.setVisible(true);
         resultWindow.setLocationRelativeTo(null);
-    }
-
-    private String applyIndentation(String docstring, String indentation) {
-        String[] lines = docstring.split("\n");
-        StringBuilder unindented = new StringBuilder();
-
-        for (String line : lines) {
-            unindented.append(indentation);
-            unindented.append(line);
-            unindented.append("\n");
-        }
-
-        return unindented.toString();
     }
 
     private String determineCorrectIndentation(String code) {
