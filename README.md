@@ -25,13 +25,13 @@ Configuration
 
 1.  To set your OpenAI API key, go to `Preferences > Tools  > Docgen`
 2.  Enter your API key in the provided input field and click 'Apply'
-3.  Set your keyboard shortcut: go to `Preferences > Keymap` and look for `Plugins > Docgen > Generate docstring`
+3.  Set your keyboard shortcut: go to `Preferences > Keymap` and look for `Plugins > Docgen > Generate Docstring`
 
 Usage
 -----
 
 1.  Right-click on the function you want to generate documentation for
-2.  Choose `Generate docstring` from the context menu
+2.  Choose `Generate Docstring` from the context menu
 3.  Wait for the OpenAI model to generate the documentation
 4.  The generated documentation will be displayed in a popup window
 5.  Click `Insert` to add the documentation to your Python function
