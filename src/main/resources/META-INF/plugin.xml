@@ -70,7 +70,7 @@
         <action
                 id="com.profiq.codexor.GenerateDocumentationAction"
                 class="com.profiq.codexor.GenerateDocumentationAction"
-                text="Generate docstring">
+                text="Generate Docstring">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
     </actions>
